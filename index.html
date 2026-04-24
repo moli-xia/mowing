@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>绝地收割（Final Mowing）</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { background: #000; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+      #app { width: 100vw; height: 100vh; position: relative; }
+      canvas { display: block; width: 100% !important; height: 100% !important; }
+
+      /* HUD */
+      #hud {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        pointer-events: none; z-index: 10;
+      }
+
+      /* Small crosshair */
+      #crosshair {
+        position: absolute; top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 22px; height: 22px;
+      }
+      #crosshair::before, #crosshair::after {
+        content: ''; position: absolute; background: rgba(255, 230, 190, 0.95);
+        border-radius: 1px;
+        box-shadow: 0 0 6px rgba(255, 200, 140, 0.55);
+      }
+      #crosshair::before { width: 2px; height: 100%; top: 0; left: 50%; transform: translateX(-50%); }
+      #crosshair::after  { width: 100%; height: 2px; top: 50%; left: 0; transform: translateY(-50%); }
+      #crosshair .dot {
+        position: absolute; width: 4px; height: 4px; background: #ffd89b;
+        border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%,-50%);
+        box-shadow: 0 0 6px rgba(255, 210, 140, 0.9);
+      }
+      #crosshair.shooting::before, #crosshair.shooting::after {
+        background: #ffe5b3;
+        box-shadow: 0 0 10px rgba(255, 230, 170, 0.95);
+        transition: none;
+      }
+      #crosshair.targeting::before, #crosshair.targeting::after {
+        background: rgba(255, 90, 90, 0.98);
+        box-shadow: 0 0 8px rgba(255, 70, 70, 0.9);
+      }
+      #crosshair.targeting .dot {
+        background: #ff5a5a;
+        box-shadow: 0 0 8px rgba(255, 70, 70, 0.95);
+      }
+      #crosshair.hit-confirm {
+        animation: crosshairHitSpread 0.14s ease-out;
+      }
+      #crosshair.weakspot-hit {
+        animation: crosshairHitSpread 0.18s ease-out;
+      }
+      #crosshair.weakspot-hit::before, #crosshair.weakspot-hit::after {
+        background: rgba(255, 245, 120, 1);
+        box-shadow: 0 0 10px rgba(255, 245, 120, 0.95);
+      }
+      #crosshair.weakspot-hit .dot {
+        background: #fff28a;
+        box-shadow: 0 0 12px rgba(255, 245, 120, 1);
+      }
+      @keyframes crosshairHitSpread {
+        0% { transform: translate(-50%, -50%) scale(1); }
+        45% { transform: translate(-50%, -50%) scale(1.42); }
+        100% { transform: translate(-50%, -50%) scale(1); }
+      }
+
+      /* Wave warning */
+      #wave-warning {
+        position: absolute; top: 18%; left: 50%;
+        transform: translateX(-50%) scale(0.95);
+        font-size: 24px; font-weight: 800; letter-spacing: 2px;
+        color: #ffd08a; text-shadow: 0 0 16px rgba(255, 140, 70, 0.85);
+        background: rgba(70, 10, 10, 0.55);
+        border: 1px solid rgba(255, 170, 90, 0.55);
+        border-radius: 8px;
+        padding: 10px 18px;
+        opacity: 0;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+      }
+      #wave-warning.active {
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+      }
+
+      #streak-banner {
+        position: absolute; top: 28%; left: 50%;
+        transform: translateX(-50%) scale(0.88);
+        min-width: 240px;
+        text-align: center;
+        font-size: 30px; font-weight: 900; letter-spacing: 4px;
+        color: #fff3c2;
+        text-shadow: 0 0 18px rgba(255, 170, 70, 0.95);
+        background: linear-gradient(180deg, rgba(120,20,20,0.7), rgba(40,0,0,0.5));
+        border: 1px solid rgba(255, 170, 90, 0.6);
+        border-radius: 10px;
+        padding: 12px 20px;
+        opacity: 0;
+        transition: opacity 0.16s ease, transform 0.16s ease;
+      }
+      #streak-banner.active {
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+      }
+      #streak-banner.headshot {
+        color: #fff68e;
+        text-shadow: 0 0 22px rgba(255, 245, 120, 1);
+      }
+
+      /* Score & Stats */
+      #stats {
+        position: absolute; top: 20px; left: 20px;
+        color: #fff; text-shadow: 0 0 8px rgba(0,0,0,0.8);
+      }
+      #kill-count {
+        font-size: 28px; font-weight: 700; color: #ff4444;
+        text-shadow: 0 0 12px rgba(255,68,68,0.8);
+        letter-spacing: 2px;
+      }
+      #kill-label { font-size: 11px; color: rgba(255,255,255,0.6); letter-spacing: 3px; text-transform: uppercase; }
+
+      #wave-info {
+        position: absolute; top: 20px; right: 20px;
+        text-align: right; color: #fff;
+      }
+      #wave-num { font-size: 22px; font-weight: 600; color: #ffaa44; text-shadow: 0 0 10px rgba(255,170,68,0.7); }
+      #enemy-left { font-size: 12px; color: rgba(255,255,255,0.6); letter-spacing: 2px; }
+
+      /* Minimap */
+      #minimap-wrap {
+        position: absolute;
+        top: 128px;
+        right: 20px;
+        width: 172px;
+        padding: 10px;
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(10, 12, 18, 0.84), rgba(18, 8, 8, 0.7));
+        border: 1px solid rgba(255, 220, 170, 0.18);
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.28);
+      }
+      #minimap-title {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: rgba(255, 232, 190, 0.88);
+        margin-bottom: 8px;
+      }
+      #minimap-canvas {
+        display: block;
+        width: 150px !important;
+        height: 150px !important;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background:
+          radial-gradient(circle at center, rgba(110, 72, 48, 0.16), rgba(0, 0, 0, 0.16)),
+          rgba(6, 10, 14, 0.88);
+      }
+      #minimap-legend {
+        margin-top: 8px;
+        font-size: 10px;
+        color: rgba(255,255,255,0.52);
+        letter-spacing: 1px;
+        text-align: center;
+      }
+      #audio-controls {
+        margin-top: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        pointer-events: auto;
+      }
+      #music-toggle {
+        width: 100%;
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.18);
+        background: rgba(8, 12, 18, 0.62);
+        color: #ffe3a4;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(0,0,0,0.22);
+      }
+      #music-toggle.off {
+        color: rgba(255,255,255,0.55);
+        background: rgba(20, 20, 24, 0.58);
+      }
+      #sfx-toggle {
+        width: 100%;
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.18);
+        background: rgba(8, 12, 18, 0.62);
+        color: #ffe3a4;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(0,0,0,0.22);
+      }
+      #sfx-toggle.off {
+        color: rgba(255,255,255,0.55);
+        background: rgba(20, 20, 24, 0.58);
+      }
+      #volume-control {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 4px;
+      }
+      #volume-control label {
+        font-size: 10px;
+        color: rgba(255, 227, 164, 0.7);
+        letter-spacing: 1px;
+        white-space: nowrap;
+      }
+      #volume-slider {
+        flex: 1;
+        height: 4px;
+        -webkit-appearance: none;
+        appearance: none;
+        background: rgba(255,255,255,0.15);
+        border-radius: 2px;
+        outline: none;
+        cursor: pointer;
+      }
+      #volume-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #ffe3a4;
+        cursor: pointer;
+        box-shadow: 0 0 4px rgba(0,0,0,0.3);
+      }
+      #volume-slider::-moz-range-thumb {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #ffe3a4;
+        cursor: pointer;
+        border: none;
+        box-shadow: 0 0 4px rgba(0,0,0,0.3);
+      }
+      #volume-value {
+        font-size: 10px;
+        color: rgba(255, 227, 164, 0.7);
+        min-width: 24px;
+        text-align: right;
+      }
+
+      /* Health bar */
+      #health-bar-wrap {
+        position: absolute; bottom: 30px; left: 50%;
+        transform: translateX(-50%);
+        display: flex; flex-direction: column; align-items: center; gap: 6px;
+      }
+      #health-label { font-size: 10px; color: rgba(255,255,255,0.5); letter-spacing: 3px; }
+      #hearts-container {
+        display: flex;
+        gap: 8px;
+      }
+      .heart {
+        width: 28px;
+        height: 26px;
+        position: relative;
+      }
+      .heart svg {
+        width: 100%;
+        height: 100%;
+        filter: drop-shadow(0 0 4px rgba(255,80,80,0.6));
+        transition: opacity 0.2s, transform 0.2s;
+      }
+      .heart.empty svg {
+        opacity: 0.25;
+        filter: none;
+      }
+      .heart.lost {
+        animation: heartLost 0.3s ease-out;
+      }
+      @keyframes heartLost {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.3); }
+        100% { transform: scale(1); }
+      }
+
+      /* Ammo */
+      #ammo-display {
+        position: absolute; bottom: 30px; right: 30px;
+        color: #fff; text-align: right;
+      }
+      #ammo-count { font-size: 36px; font-weight: 700; color: #fff; line-height: 1; }
+      #ammo-total { font-size: 14px; color: rgba(255,255,255,0.4); }
+      #reload-msg { font-size: 12px; color: #ffaa44; letter-spacing: 2px; display: none; }
+
+      /* Hit flash */
+      #hit-flash {
+        position: absolute; inset: 0;
+        background: radial-gradient(ellipse at center, transparent 40%, rgba(255,0,0,0.35) 100%);
+        opacity: 0; pointer-events: none;
+        transition: opacity 0.1s;
+      }
+      #hit-flash.active { opacity: 1; }
+
+      /* Hit flash */
+      #controls-hint {
+        position: absolute; bottom: 30px; left: 30px;
+        font-size: 11px; color: rgba(255,255,255,0.35);
+        line-height: 1.8; letter-spacing: 1px;
+      }
+
+      /* Loading screen */
+      #loading-screen {
+        position: fixed; inset: 0; z-index: 200;
+        background: linear-gradient(135deg, #1a0a0a 0%, #2d1010 50%, #1a0808 100%);
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 24px;
+      }
+      #loading-screen h2 {
+        font-size: 36px; font-weight: 800; letter-spacing: 4px;
+        color: #fff; text-shadow: 0 0 20px rgba(255,80,80,0.6);
+      }
+      #loading-bar-wrap {
+        width: 320px; height: 8px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 4px; overflow: hidden;
+      }
+      #loading-bar {
+        height: 100%; width: 0%;
+        background: linear-gradient(90deg, #cc2222, #ff5544);
+        border-radius: 4px;
+        transition: width 0.3s ease;
+      }
+      #loading-text {
+        color: rgba(255,255,255,0.7); font-size: 14px;
+        letter-spacing: 1px;
+      }
+
+      /* Start screen */
+      #start-screen {
+        position: fixed; inset: 0; z-index: 100;
+        background: rgba(0,0,0,0.85);
+        display: none; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 16px;
+      }
+      #start-screen h1 {
+        font-size: 52px; font-weight: 900; letter-spacing: 6px;
+        color: #fff; text-shadow: 0 0 30px rgba(255,80,80,0.8);
+        text-transform: uppercase;
+      }
+      #start-screen p { color: rgba(255,255,255,0.6); font-size: 15px; letter-spacing: 2px; }
+      #start-btn {
+        margin-top: 20px; padding: 14px 48px;
+        background: linear-gradient(135deg, #cc2222, #ff5544);
+        color: #fff; font-size: 18px; font-weight: 700;
+        border: none; border-radius: 8px; cursor: pointer;
+        letter-spacing: 3px; text-transform: uppercase;
+        box-shadow: 0 0 24px rgba(255,68,68,0.5);
+        transition: transform 0.15s, box-shadow 0.15s;
+        pointer-events: all;
+      }
+      #start-btn:hover { transform: scale(1.05); box-shadow: 0 0 36px rgba(255,68,68,0.7); }
+
+      /* Game over */
+      #gameover-screen {
+        position: fixed; inset: 0; z-index: 100;
+        background: rgba(0,0,0,0.85);
+        display: none; flex-direction: column;
+        align-items: center; justify-content: center; gap: 16px;
+      }
+      #gameover-screen h2 { font-size: 48px; font-weight: 900; color: #ff4444; letter-spacing: 4px; }
+      #gameover-screen p { color: rgba(255,255,255,0.6); font-size: 16px; }
+      #gameover-score { font-size: 28px; color: #ffaa44; font-weight: 700; }
+      #restart-btn {
+        margin-top: 16px; padding: 12px 40px;
+        background: linear-gradient(135deg, #cc2222, #ff5544);
+        color: #fff; font-size: 16px; font-weight: 700;
+        border: none; border-radius: 8px; cursor: pointer;
+        letter-spacing: 2px; text-transform: uppercase;
+        box-shadow: 0 0 20px rgba(255,68,68,0.4);
+        transition: transform 0.15s;
+        pointer-events: all;
+      }
+      #restart-btn:hover { transform: scale(1.05); }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <!-- HUD -->
+    <div id="hud">
+      <div id="crosshair"><div class="dot"></div></div>
+      <div id="wave-warning"></div>
+      <div id="streak-banner"></div>
+
+      <div id="stats">
+        <div id="kill-count">0</div>
+        <div id="kill-label">KILLS</div>
+      </div>
+
+      <div id="wave-info">
+        <div id="wave-num">WAVE 1</div>
+        <div id="enemy-left">0 ENEMIES</div>
+      </div>
+      <div id="minimap-wrap">
+        <div id="minimap-title">战场小地图</div>
+        <canvas id="minimap-canvas" width="150" height="150"></canvas>
+        <div id="minimap-legend">绿点 玩家  ·  红点 僵尸</div>
+        <div id="audio-controls">
+          <button id="music-toggle">MUSIC OFF</button>
+          <button id="sfx-toggle">SFX OFF</button>
+          <div id="volume-control">
+            <label>音量</label>
+            <input type="range" id="volume-slider" min="0" max="100" value="100">
+            <span id="volume-value">100%</span>
+          </div>
+        </div>
+      </div>
+      <div id="health-bar-wrap">
+        <div id="hearts-container">
+          <div class="heart" id="heart-1">
+            <svg viewBox="0 0 24 24" fill="#ff4444"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </div>
+          <div class="heart" id="heart-2">
+            <svg viewBox="0 0 24 24" fill="#ff4444"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </div>
+          <div class="heart" id="heart-3">
+            <svg viewBox="0 0 24 24" fill="#ff4444"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </div>
+        </div>
+        <div id="health-label">LIVES</div>
+      </div>
+
+      <div id="ammo-display">
+        <div id="ammo-count">30</div>
+        <div id="ammo-total">/ 90</div>
+        <div id="reload-msg">RELOADING...</div>
+      </div>
+
+      <div id="controls-hint">
+        WASD 移动 &nbsp;|&nbsp; 鼠标瞄准 &nbsp;|&nbsp; 左键射击 &nbsp;|&nbsp; R 换弹
+      </div>
+
+      <div id="hit-flash"></div>
+    </div>
+
+    <!-- Screens -->
+    <div id="loading-screen">
+      <h2>资源加载中...</h2>
+      <div id="loading-bar-wrap">
+        <div id="loading-bar"></div>
+      </div>
+      <div id="loading-text">正在加载游戏资源...</div>
+    </div>
+
+    <div id="start-screen">
+      <h1>绝地收割</h1>
+      <p>Final Mowing - 僵尸围城射击游戏</p>
+      <p style="font-size:13px; color:rgba(255,255,255,0.4)">消灭所有僵尸，保卫阵地</p>
+      <button id="start-btn">开始游戏</button>
+    </div>
+
+    <div id="gameover-screen">
+      <h2>GAME OVER</h2>
+      <p>你已倒下...</p>
+      <div id="gameover-score">击杀数: 0</div>
+      <button id="restart-btn">再来一局</button>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
