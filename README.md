@@ -11,7 +11,7 @@
 - ⚡ **性能优化**：针对多平台浏览器优化的渲染性能
 
   <summary>项目截图</summary>
-  <img src="https://raw.githubusercontent.com/moli-xia/mowing/main/demo1.png" alt="项目截图" style="max-width:200px">
+  <img src="https://raw.githubusercontent.com/moli-xia/mowing/master/demo1.png" alt="项目截图" style="max-width:200px">
   <br>
   <img src="https://raw.githubusercontent.com/moli-xia/MoonTV-app/main/public/screenshot1.png" alt="项目截图" style="max-width:600px">
   <img src="https://raw.githubusercontent.com/moli-xia/MoonTV-app/main/public/screenshot2.png" alt="项目截图" style="max-width:600px">
