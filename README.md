@@ -13,9 +13,9 @@
   <summary>项目截图</summary>
   <img src="https://raw.githubusercontent.com/moli-xia/mowing/master/demo1.png" alt="项目截图" style="max-width:200px">
   <br>
-  <img src="https://raw.githubusercontent.com/moli-xia/MoonTV-app/main/public/screenshot1.png" alt="项目截图" style="max-width:600px">
-  <img src="https://raw.githubusercontent.com/moli-xia/MoonTV-app/main/public/screenshot2.png" alt="项目截图" style="max-width:600px">
-  <img src="https://raw.githubusercontent.com/moli-xia/MoonTV-app/main/public/screenshot3.png" alt="项目截图" style="max-width:600px">
+  <img src="https://raw.githubusercontent.com/moli-xia/mowing/master/demo2.png" alt="项目截图" style="max-width:600px">
+  <img src="https://raw.githubusercontent.com/moli-xia/mowing/master/demo3.png" alt="项目截图" style="max-width:600px">
+ 
 
 ## 操作说明
 
