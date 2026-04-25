@@ -130,15 +130,34 @@ export async function renderLeaderboard(container, maxCount = 100) {
 
       const dateStr = new Date(player.date).toLocaleDateString('zh-CN');
 
-      item.innerHTML = `
-        <span class="leaderboard-rank">${rankLabel}</span>
-        <span class="leaderboard-name">${escapeHtml(player.username)}</span>
-        <span class="leaderboard-kills">${player.kills} 击杀</span>
-        <span class="leaderboard-headshots">爆头: ${player.headshots || 0}</span>
-        <span class="leaderboard-streak">连杀: ${player.maxStreak || 0}</span>
-        <span class="leaderboard-wave">Wave ${player.wave}</span>
-        <span class="leaderboard-date">${dateStr}</span>
-      `;
+      const header = document.createElement('div');
+      header.className = 'leaderboard-header';
+
+      const rankEl = document.createElement('span');
+      rankEl.className = 'leaderboard-rank';
+      rankEl.textContent = rankLabel;
+
+      const nameEl = document.createElement('span');
+      nameEl.className = 'leaderboard-name';
+      nameEl.textContent = player.username;
+      nameEl.title = player.username;
+
+      const dateEl = document.createElement('span');
+      dateEl.className = 'leaderboard-date';
+      dateEl.textContent = dateStr;
+
+      header.append(rankEl, nameEl, dateEl);
+
+      const meta = document.createElement('div');
+      meta.className = 'leaderboard-meta';
+      meta.append(
+        createMetaBadge('leaderboard-kills', `${player.kills} 击杀`),
+        createMetaBadge('leaderboard-headshots', `爆头 ${player.headshots || 0}`),
+        createMetaBadge('leaderboard-streak', `连杀 ${player.maxStreak || 0}`),
+        createMetaBadge('leaderboard-wave', `Wave ${player.wave}`),
+      );
+
+      item.append(header, meta);
       list.appendChild(item);
     });
 
@@ -149,10 +168,11 @@ export async function renderLeaderboard(container, maxCount = 100) {
   }
 }
 
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+function createMetaBadge(className, text) {
+  const el = document.createElement('span');
+  el.className = className;
+  el.textContent = text;
+  return el;
 }
 
 export async function downloadRankingJSON() {
