@@ -14,6 +14,7 @@ import {
   toggleBackgroundMusic,
   toggleSoundEffects,
 } from './sound.js';
+import { savePlayerRecord } from './ranking.js';
 
 export class Game {
   constructor(container) {
@@ -22,6 +23,9 @@ export class Game {
     this.kills        = 0;
     this.wave         = 1;
     this.health       = 3;
+    this.username     = '';
+    this.headshots    = 0;
+    this.maxStreak    = 0;
     this.mouseAngle   = 0;     // horizontal aim angle (radians)
     this.mouseWorldX  = 0;
     this.mouseWorldZ  = 0;
@@ -236,10 +240,13 @@ export class Game {
   // ─────────────────────────────────────────
   //  GAME LIFECYCLE
   // ─────────────────────────────────────────
-  start() {
+  start(username) {
+    this.username     = username || '匿名玩家';
     this.kills        = 0;
     this.wave         = 1;
     this.health       = 3;
+    this.headshots    = 0;
+    this.maxStreak    = 0;
     this.running      = true;
     this._wavePending = false;
     this._streakShakeTime = 0;
@@ -272,6 +279,8 @@ export class Game {
     this.kills        = 0;
     this.wave         = 1;
     this.health       = 3;
+    this.headshots    = 0;
+    this.maxStreak    = 0;
     this.running      = true;
     this._wavePending = false;
     this._streakShakeTime = 0;
@@ -304,7 +313,10 @@ export class Game {
 
   _gameOver() {
     this.running = false;
-    this.gameoverScore.textContent = `击杀数: ${this.kills}`;
+    if (this.username) {
+      void savePlayerRecord(this.username, this.kills, this.wave, this.headshots, this.maxStreak);
+    }
+    this.gameoverScore.textContent = `${this.username} - 击杀数: ${this.kills} - 爆头: ${this.headshots} - 最大连杀: ${this.maxStreak} - Wave: ${this.wave}`;
     this.gameoverScr.style.display = 'flex';
   }
 
@@ -477,7 +489,12 @@ export class Game {
     this._lastKillAt = now;
 
     if (weakSpot) {
+      this.headshots++;
       this._slowMoTime = Math.max(this._slowMoTime, 0.12);
+    }
+
+    if (this._killStreak > this.maxStreak) {
+      this.maxStreak = this._killStreak;
     }
 
     if (this._killStreak >= 2) {

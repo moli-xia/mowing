@@ -388,6 +388,77 @@
         pointer-events: all;
       }
       #restart-btn:hover { transform: scale(1.05); }
+
+      /* Username input */
+      #username-input {
+        margin-top: 16px; padding: 12px 20px;
+        background: rgba(40,40,40,0.9);
+        color: #fff; font-size: 16px;
+        border: 2px solid rgba(255,100,100,0.5);
+        border-radius: 8px; width: 260px;
+        text-align: center; letter-spacing: 1px;
+        outline: none;
+        pointer-events: all;
+      }
+      #username-input:focus {
+        border-color: rgba(255,120,120,0.9);
+        box-shadow: 0 0 16px rgba(255,80,80,0.4);
+      }
+      #username-input::placeholder {
+        color: rgba(255,255,255,0.35);
+      }
+      #username-error {
+        color: #ff6666; font-size: 13px;
+        height: 18px; margin-top: 4px;
+        display: none;
+      }
+
+      /* Leaderboard */
+      #leaderboard-container {
+        width: 480px;
+        max-height: 320px;
+        overflow-y: auto;
+        margin-top: 16px;
+        background: rgba(20,20,20,0.85);
+        border: 1px solid rgba(255,100,100,0.3);
+        border-radius: 10px;
+        padding: 12px;
+      }
+      #leaderboard-container::-webkit-scrollbar { width: 6px; }
+      #leaderboard-container::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 3px; }
+      #leaderboard-container::-webkit-scrollbar-thumb { background: rgba(255,100,100,0.5); border-radius: 3px; }
+      .leaderboard-title {
+        text-align: center;
+        font-size: 18px; font-weight: 700;
+        color: #ffd08a; letter-spacing: 2px;
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255,150,100,0.3);
+      }
+      .leaderboard-list {
+        display: flex; flex-direction: column; gap: 4px;
+      }
+      .leaderboard-item {
+        display: grid;
+        grid-template-columns: 50px 1fr 70px 60px 50px 50px 70px;
+        align-items: center;
+        padding: 6px 8px;
+        background: rgba(40,30,30,0.6);
+        border-radius: 5px;
+        font-size: 12px;
+        gap: 6px;
+      }
+      .leaderboard-item.rank-1 { background: rgba(255,180,50,0.25); border: 1px solid rgba(255,180,50,0.4); }
+      .leaderboard-item.rank-2 { background: rgba(180,180,200,0.2); border: 1px solid rgba(180,180,200,0.35); }
+      .leaderboard-item.rank-3 { background: rgba(180,120,60,0.2); border: 1px solid rgba(180,120,60,0.35); }
+      .leaderboard-rank { font-size: 14px; font-weight: 700; color: #ffd08a; }
+      .leaderboard-name { color: #fff; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .leaderboard-kills { color: #ff8888; font-weight: 600; }
+      .leaderboard-headshots { color: #ffdd44; font-weight: 600; }
+      .leaderboard-streak { color: #88ff88; font-weight: 600; }
+      .leaderboard-wave { color: #88aaff; font-size: 11px; }
+      .leaderboard-date { color: rgba(255,255,255,0.4); font-size: 10px; text-align: right; }
+      .leaderboard-empty { text-align: center; color: rgba(255,255,255,0.4); padding: 30px; font-size: 14px; }
     </style>
   </head>
   <body>
@@ -463,7 +534,10 @@
       <h1>绝地收割</h1>
       <p>Final Mowing - 僵尸围城射击游戏</p>
       <p style="font-size:13px; color:rgba(255,255,255,0.4)">消灭所有僵尸，保卫阵地</p>
+      <input type="text" id="username-input" placeholder="输入你的名字" maxlength="16" autocomplete="off">
+      <div id="username-error"></div>
       <button id="start-btn">开始游戏</button>
+      <div id="leaderboard-container"></div>
     </div>
 
     <div id="gameover-screen">
